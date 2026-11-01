@@ -5,11 +5,12 @@ from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks, HTTPExcept
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-BASE = Path(__file__).resolve().parent
+BASE = Path("/tmp/dayaedits")
 UPLOADS = BASE / "uploads"
 OUTPUTS = BASE / "outputs"
-UPLOADS.mkdir(exist_ok=True)
-OUTPUTS.mkdir(exist_ok=True)
+
+UPLOADS.mkdir(parents=True, exist_ok=True)
+OUTPUTS.mkdir(parents=True, exist_ok=True)
 JOBS = {}
 LOCK = threading.Lock()
 
