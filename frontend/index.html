@@ -1,1 +1,52 @@
-
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DayaEdits — AI Video Studio</title>
+<style>
+:root{--bg:#090b12;--p:#141a28;--line:#293246;--muted:#9aa6bc;--txt:#f4f6fb;--a:#8b5cf6;--cyan:#22d3ee}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% 0,#292052,transparent 38%),var(--bg);color:var(--txt);font:15px Inter,system-ui,Arial}
+header{padding:18px 5%;border-bottom:1px solid var(--line);font-size:23px;font-weight:850}header span{color:#a78bfa}
+main{max-width:1100px;margin:35px auto;padding:0 20px}.intro h1{font-size:clamp(30px,5vw,48px);margin:8px 0}.intro p,.muted{color:var(--muted);line-height:1.5}.eyebrow{color:#bba5ff;letter-spacing:2px;font-size:12px;font-weight:800}
+.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;margin-top:25px}.panel{background:var(--p);border:1px solid var(--line);border-radius:18px;padding:20px}.panel h2{font-size:17px;margin:0 0 16px}
+.drop{border:1px dashed #68708a;border-radius:14px;padding:30px;text-align:center;cursor:pointer;background:#0c111c}.drop strong{display:block;margin:8px}input[type=file]{display:none}
+video{width:100%;max-height:470px;background:#05070c;border-radius:12px;margin-top:15px;display:none}
+.options{display:grid;grid-template-columns:1fr 1fr;gap:10px}.opt{background:#0d1320;border:1px solid #303a50;border-radius:12px;padding:12px;font-size:13px}.opt label{display:flex;gap:8px;align-items:center;cursor:pointer}.opt input{accent-color:var(--a)}
+select{width:100%;background:#0d1320;color:white;padding:10px;border:1px solid var(--line);border-radius:10px;margin-top:8px}
+button{border:0;border-radius:11px;background:var(--a);color:white;padding:13px 17px;font-weight:750;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}.actions{display:flex;gap:10px;margin-top:16px}.actions button{flex:1}.secondary{background:#252e41;border:1px solid #3a465e}
+#status{margin-top:15px;color:var(--muted);font-size:13px;line-height:1.5}.bar{height:7px;background:#2a3346;border-radius:8px;margin-top:10px;overflow:hidden}.bar div{height:100%;width:0;background:linear-gradient(90deg,var(--a),var(--cyan));transition:width .3s}
+#download{display:none;margin-top:15px}.note{font-size:12px;color:#b9a9df;line-height:1.55;margin-top:16px}
+@media(max-width:780px){.grid{grid-template-columns:1fr}.options{grid-template-columns:1fr 1fr}}
+</style></head><body>
+<header>Daya<span>Edits</span> ✦</header><main>
+<div class="intro"><div class="eyebrow">AI VIDEO STUDIO</div><h1>Turn raw footage into <span style="color:#b59aff">ready-to-share</span> videos.</h1><p>Upload your clip, choose the edits, and let the DayaEdits processing engine render an MP4.</p></div>
+<div class="grid"><section class="panel"><h2>01 — Upload video</h2><label class="drop" for="file"><div style="font-size:30px">⬆️</div><strong>Choose a video file</strong><span class="muted">MP4, MOV, WebM, MKV · up to 1 GB</span></label><input id="file" type="file" accept="video/*"><div id="filename" class="muted" style="margin-top:10px">No video selected</div><video id="preview" controls playsinline></video><div class="note">Your upload is sent to the backend running on your own computer/server.</div></section>
+<aside class="panel"><h2>02 — Choose your edits</h2><div class="options">
+<div class="opt"><label><input type="checkbox" id="captions"> 💬 Auto captions</label></div>
+<div class="opt"><label><input type="checkbox" id="silence"> ✂️ Remove long silence</label></div>
+<div class="opt"><label><input type="checkbox" id="denoise"> 🔊 Audio denoise</label></div>
+<div class="opt"><label><input type="checkbox" id="vertical"> 📱 Vertical 9:16</label></div>
+<div class="opt"><label><input type="checkbox" id="fade"> 🎬 Fade in/out</label></div>
+</div><div style="margin-top:16px;font-size:13px">Color grading<select id="grade"><option value="original">Original</option><option value="cinematic">Cinematic</option><option value="warm">Warm glow</option><option value="cool">Cool & crisp</option><option value="vivid">Vivid pop</option><option value="bw">Black & white</option></select></div>
+<div style="margin-top:16px;font-size:13px">Speech language<select id="language"><option value="auto">Auto detect</option><option value="en">English</option><option value="ur">Urdu</option><option value="hi">Hindi</option><option value="ar">Arabic</option></select></div>
+<div style="margin-top:16px;font-size:13px">Playback speed<select id="speed"><option value="1">Normal</option><option value="0.75">0.75× slow</option><option value="0.5">0.5× slow motion</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></div>
+<div class="actions"><button id="render" disabled>✨ Render my video</button><button class="secondary" id="reset">Reset</button></div><div class="bar"><div id="progress"></div></div><div id="status">Upload a video to start.</div><a id="download" href="#"><button>⬇ Download edited MP4</button></a></aside></div>
+</main>
+<script>
+let jobId=null, poller=null, objectUrl=null;
+const $=id=>document.getElementById(id);
+$('file').addEventListener('change',async()=>{
+ const f=$('file').files[0];if(!f)return;
+ $('filename').textContent='Uploading '+f.name+'…';$('render').disabled=true;$('download').style.display='none';
+ if(objectUrl)URL.revokeObjectURL(objectUrl);objectUrl=URL.createObjectURL(f);$('preview').src=objectUrl;$('preview').style.display='block';
+ const fd=new FormData();fd.append('file',f);
+ try{const r=await fetch('/api/upload',{method:'POST',body:fd});const d=await r.json();if(!r.ok)throw Error(d.detail||'Upload failed');jobId=d.id;$('filename').textContent=f.name+' · Upload complete';$('render').disabled=false;$('status').textContent='Video uploaded. Select your edits and render.'}
+ catch(e){$('status').textContent='Upload error: '+e.message;$('filename').textContent='Upload failed'}
+});
+$('render').addEventListener('click',async()=>{
+ if(!jobId)return;$('render').disabled=true;$('download').style.display='none';$('progress').style.width='3%';$('status').textContent='Starting render…';
+ const fd=new FormData();fd.append('captions',$('captions').checked);fd.append('remove_silence',$('silence').checked);fd.append('denoise',$('denoise').checked);fd.append('vertical',$('vertical').checked);fd.append('fade',$('fade').checked);fd.append('grade',$('grade').value);fd.append('language',$('language').value);fd.append('speed',$('speed').value);
+ try{const r=await fetch('/api/process/'+jobId,{method:'POST',body:fd});const d=await r.json();if(!r.ok)throw Error(d.detail||'Could not start render');$('status').textContent='Render queued…';poller=setInterval(checkStatus,2000)}
+ catch(e){$('status').textContent='Render error: '+e.message;$('render').disabled=false}
+});
+async function checkStatus(){try{const r=await fetch('/api/status/'+jobId);const d=await r.json();$('progress').style.width=(d.progress||0)+'%';$('status').textContent=d.message||d.status;if(d.status==='completed'){clearInterval(poller);$('download').href=d.download_url;$('download').style.display='block';$('render').disabled=false}else if(d.status==='failed'){clearInterval(poller);$('render').disabled=false;$('status').textContent='Render failed: '+d.message}}catch(e){$('status').textContent='Connection lost: '+e.message;clearInterval(poller);$('render').disabled=false}}
+$('reset').addEventListener('click',()=>{['captions','silence','denoise','vertical','fade'].forEach(x=>$(x).checked=false);$('grade').value='original';$('language').value='auto';$('speed').value='1';$('status').textContent='Edit choices reset.'});
+</script></body></html>
