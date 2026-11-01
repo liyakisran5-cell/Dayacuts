@@ -203,5 +203,10 @@ def download(job_id: str):
     path = OUTPUTS / f"{job_id}_edited.mp4"
     if not path.exists(): raise HTTPException(404, "Edited video is not ready.")
     return FileResponse(path, media_type="video/mp4", filename="DayaEdits_Export.mp4")
+FRONTEND_DIR = Path(__file__).resolve().parent / "frontend"
 
-app.mount("/", StaticFiles(directory=str(BASE.parent / "frontend"), html=True), name="frontend")
+app.mount(
+    "/",
+    StaticFiles(directory=str(FRONTEND_DIR), html=True),
+    name="frontend"
+)
